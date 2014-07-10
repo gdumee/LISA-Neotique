@@ -50,7 +50,7 @@ class NeoTrans():
         # Get translation
         msg = self.trans(translation_key)
         
-        # Is this a option list for randomized translation ?
+        # Is this an option list for randomized translation ?
         try:
             options = eval(msg)
             if type(options) is tuple:
