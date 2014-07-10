@@ -16,6 +16,7 @@
 import os
 from random import random 
 from subprocess import call
+import glob
 
 
 #-----------------------------------------------------------------------------
@@ -39,11 +40,16 @@ class NeoTrans():
                 if os.path.isfile("{0}/{1}".format(path, x)) == True or os.path.isdir("{0}/{1}/LC_MESSAGES".format(path, x)) == False:
                     continue
                 
-                filename_mo = "{path}/{lang}/LC_MESSAGES/lisa.mo".format(path = path, lang = x)
-                filename_po = "{path}/{lang}/LC_MESSAGES/lisa.po".format(path = path, lang = x)
-                if os.path.isfile(filename_po) == True and (os.path.isfile(filename_mo) == False or os.path.getmtime(filename_po) > os.path.getmtime(filename_mo)):
-                    print "Generating {lang} translations".format(lang = x)
-                    call(['msgfmt', '-o', filename_mo, filename_po])
+                # Search po files
+                wildcard = "{path}/{lang}/LC_MESSAGES/*.po".format(path = path, lang = x)
+                for y in glob.glob(wildcard):
+                    filename_mo = y[:-2] + "mo"
+                    filename_po = y
+                    
+                    # Check if mo file is older
+                    if os.path.isfile(filename_mo) == False or os.path.getmtime(filename_po) > os.path.getmtime(filename_mo):
+                        print "Generating {lang} translations".format(lang = x)
+                        call(['msgfmt', '-o', filename_mo, filename_po])
 
     #-----------------------------------------------------------------------------
     def Trans(self, translation_key):
