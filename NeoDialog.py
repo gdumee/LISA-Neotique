@@ -15,6 +15,7 @@
 #-----------------------------------------------------------------------------
 import json
 from NeoTimer import NeoTimer
+import uuid
 
 
 #-----------------------------------------------------------------------------
@@ -24,20 +25,28 @@ class NeoDialog:
     """
     Dialog manager
     """
+    # Dialogs
+    _Dialogs = {}    
+    
+    #-----------------------------------------------------------------------------
     def __init__(self, configuration_lisa):
         self.configuration_lisa = configuration_lisa
 
     #-----------------------------------------------------------------------------
-    def SimpleAnswer(self, plugin, method, message):
+    def SimpleAnswer(self, plugin, method, message, protocol):
         """
         Answer the client with a message
         """
-        # Nothing to do, default answer rule will respond
+        # Send question to the client
+        print "Notify ", message
+        self.SimpleNotify(plugin = plugin, method = method, message = message, protocol = protocol)
+        
+        # No rule answer after plugin end
         args = {}
         args['plugin'] = plugin
         args['method'] = method
-        args['body'] = message
-        args['answer_rule'] = True
+        args['body'] = ""
+        args['answer_rule'] = False
         return args
 
     #-----------------------------------------------------------------------------
@@ -79,6 +88,13 @@ class NeoDialog:
         pMessage = message text to send
         pClients_zone = Target zone : "cuisine", "chambre", "all"... 
         """
+        # Create a unique dialog
+        uid = str(uuid.uuid1())
+        self._Dialogs[uid] = {'caller': caller, 'caller_cbk': caller_cbk, 'caller_param': caller_param}
+
+        # Create timeout timer
+        self._Dialogs[uid]['timer'] = NeoTimer(duration_s = 10, user_cbk = self._timer_cbk, user_param = uid)
+
         # Send data to calling client
         args = {}
         args['type'] = "command"
@@ -89,31 +105,42 @@ class NeoDialog:
         args['clients_zone'] = ["all"]  # TODO
         args['from'] = "server"
         args['need_answer'] = True
-        args['answer_arg'] = self
+        args['answer_arg'] = uid
         protocol.answerToClient(json.dumps(args))
         
-        # Create a Timer for response
-        try:
-            len(caller.dialog)
-        except:
-            caller.dialogs = []
-            
-        # Create timeout timer
-        caller.dialogs.append({'caller': caller, 'caller_cbk': caller_cbk, 'caller_param': caller_param})
-        caller.dialogs[-1]['timer'] = NeoTimer(duration_s = 10, user_cbk = self._timer_cbk, user_param = caller.dialogs[-1])
-        
     #-----------------------------------------------------------------------------
-    def _timer_cbk(self, dialog):
+    def _timer_cbk(self, uid):
         """
         Internal timer callback
         """
+        # Search dialog
+        if self._Dialogs.has_key(uid) == False:
+            return
+
         # Callback caller without answer
-        dialog['caller_cbk'](dialog['caller_param'], None)
+        self._Dialogs[uid]['caller_cbk'](self._Dialogs[uid]['caller_param'], None)
         
-        # Remove timer from caller
-        dialog['caller'].dialogs.remove(dialog)
+        # Remove dialog
+        self._Dialogs.pop(uid, None)
         
+    #-----------------------------------------------------------------------------
     def process_answer(self, jsondata):
-        print "recéption réponse"
+        # Search dialog
+        if jsondata.has_key('outcome') == False or jsondata['outcome'].has_key('answer_arg') == False:
+            return
+        uid = jsondata['outcome']['answer_arg']
+        if self._Dialogs.has_key(uid) == False:
+            return
+        
+        # Callback caller without answer
+        caller_cbk = self._Dialogs[uid]['caller_cbk']
+        caller_param = self._Dialogs[uid]['caller_param']
+
+        # Remove dialog
+        self._Dialogs.pop(uid, None)
+
+        # Callback caller without answer
+        caller_cbk(caller_param, jsondata)
+    process_answer = classmethod(process_answer)
 
 # --------------------- End of NeoDialog.py  ---------------------
