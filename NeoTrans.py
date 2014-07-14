@@ -17,6 +17,7 @@ import os
 from random import random 
 from subprocess import call
 import glob
+import gettext
 
 
 #-----------------------------------------------------------------------------
@@ -28,20 +29,18 @@ class NeoTrans():
     ex : (1, 'message 1'), (10, 'message 2')
     'message 1' has 1 chances on 11 to be selected, 'message 2' has 10 chances on 11
     """
-    def __init__(self, trans, path = None):
+    def __init__(self, domain, localedir, fallback, languages):
         """
         # Intialization with a gettext translation function : : translation = gettext.translation(domain='.................
         """
-        self.trans = trans
-
         # Generate translation dictionary
-        if path is not None:
-            for x in os.listdir(path):
-                if os.path.isfile("{0}/{1}".format(path, x)) == True or os.path.isdir("{0}/{1}/LC_MESSAGES".format(path, x)) == False:
+        if localedir is not None:
+            for x in os.listdir(localedir):
+                if os.path.isfile("{localedir}/{lang}".format(localedir = localedir, lang = x)) == True or os.path.isdir("{localedir}/{lang}/LC_MESSAGES".format(localedir = localedir, lang = x)) == False:
                     continue
                 
                 # Search po files
-                wildcard = "{path}/{lang}/LC_MESSAGES/*.po".format(path = path, lang = x)
+                wildcard = "{localedir}/{lang}/LC_MESSAGES/*.po".format(localedir = localedir, lang = x)
                 for y in glob.glob(wildcard):
                     filename_mo = y[:-2] + "mo"
                     filename_po = y
@@ -50,6 +49,9 @@ class NeoTrans():
                     if os.path.isfile(filename_mo) == False or os.path.getmtime(filename_po) > os.path.getmtime(filename_mo):
                         print "Generating {lang} translations".format(lang = x)
                         call(['msgfmt', '-o', filename_mo, filename_po])
+
+        # Initialize gettext
+        self.trans = gettext.translation(domain = domain, localedir = localedir, fallback = fallback, languages = languages).ugettext
 
     #-----------------------------------------------------------------------------
     def Trans(self, translation_key):
@@ -86,7 +88,7 @@ class NeoTrans():
         for option in option_list:
             # If msg weight is good
             if val < option['weight']:
-                return option['msg']
+                return unicode(option['msg'])
                 
             # Try next string
             val -= option['weight']
