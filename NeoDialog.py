@@ -14,8 +14,14 @@
 # Imports
 #-----------------------------------------------------------------------------
 import json
-from NeoTimer import NeoTimer
 import uuid
+from pymongo import MongoClient
+from twisted.python.reflect import namedAny
+from twisted.python import log
+from wit import Wit
+from lisa.Neotique.NeoTimer import NeoTimer
+from lisa.Neotique.NeoTrans import NeoTrans
+from lisa.server.ConfigManager import ConfigManagerSingleton
 
 
 #-----------------------------------------------------------------------------
@@ -29,9 +35,67 @@ class NeoDialog:
     _Dialogs = {}    
     
     #-----------------------------------------------------------------------------
-    def __init__(self, configuration_lisa):
-        self.configuration_lisa = configuration_lisa
+    def __init__(self, configuration_server):
+        self.configuration_server = ConfigManagerSingleton.get().getConfiguration()
+        client = MongoClient(self.configuration_server['database']['server'], self.configuration_server['database']['port'])
+        self.database = client.lisa
 
+        self.wit = Wit(self.configuration_server['wit_token'])
+        self.rulescollection = self.database.rules
+        self.intentscollection = self.database.intents
+
+        path = '/'.join([ConfigManagerSingleton.get().getPath(), 'lang'])
+        self._ = NeoTrans(domain='lisa', localedir=path, fallback=True, languages=[self.configuration_server['lang']]).Trans
+
+    #-----------------------------------------------------------------------------
+    def parse(self, jsonData, lisaprotocol):
+        # If input has already a decoded intent
+        if jsonData.has_key("outcome") == True:
+            jsonInput = {}
+            jsonInput['outcome'] = jsonData['outcome']
+        else:
+            # Ask Wit for intent decoding
+            jsonInput = self.wit.get_message(unicode(jsonData['body']))
+        
+        # Initialize output from input
+        jsonInput['from'], jsonInput['type'], jsonInput['zone'] = jsonData['from'], jsonData['type'], jsonData['zone']
+        jsonInput['lisaprotocol'] = lisaprotocol
+
+        # 'Before' rules
+        if self.configuration_server['debug']['debug_before_before_rule']:
+            log.msg(self._("Before 'before' rule: %(jsonInput)s" % {'jsonInput': str(jsonInput)}))
+        for rule in self.rulescollection.find({"enabled": True, "before": {"$ne": None}}).sort([("order", 1)]):
+            exec(rule['before'])
+        if self.configuration_server['debug']['debug_after_before_rule']:
+            log.msg(self._("After 'before' rule: %(jsonInput)s" % {'jsonInput': str(jsonInput)}))
+        
+        # Execute intent in a plugin
+        if self.configuration_server['debug']['debug_wit']:
+            log.msg("WIT: " + str(jsonInput['outcome']))
+        oIntent = self.intentscollection.find_one({"name": jsonInput['outcome']['intent']})
+        if oIntent and jsonInput['outcome']['confidence'] >= self.configuration_server['wit_confidence']:
+            instance = namedAny(str(oIntent["module"]))()
+            methodToCall = getattr(instance, oIntent['function'])
+            jsonOutput = methodToCall(jsonInput)
+        else:
+            jsonOutput = {}
+            jsonOutput['plugin'] = "None"
+            jsonOutput['method'] = "None"
+            jsonOutput['body'] = self._("no_plugin")
+        
+        # 'After' rules
+        jsonOutput['from'] = jsonInput['from']
+        if self.configuration_server['debug']['debug_before_after_rule']:
+            log.msg(self._("Before 'after' rule: %(jsonOutput)s" % {'jsonOutput': str(jsonOutput)}))
+        for rule in self.rulescollection.find({"enabled": True, "after": {"$ne": None}}).sort([("order", 1)]):
+            exec(rule['after'])
+            if rule['end']:
+                break
+        if self.configuration_server['debug']['debug_after_after_rule']:
+            log.msg(self._("After 'after' rule: %(jsonOutput)s" % {'jsonOutput': str(jsonOutput)}))
+            
+        self.SimpleAnswer(jsonOutput['plugin'] , jsonOutput['method'] , jsonOutput['body'], lisaprotocol)
+        
     #-----------------------------------------------------------------------------
     def SimpleAnswer(self, plugin, method, message, protocol):
         """
