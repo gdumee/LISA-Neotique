@@ -95,6 +95,6 @@ class NeoTrans():
         
         # In case of error, return input
         print 'Translation randomize error'
-        return data
+        return option
 
 # --------------------- End of NeotTrans.py  ---------------------
