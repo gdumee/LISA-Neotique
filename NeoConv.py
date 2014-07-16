@@ -28,11 +28,15 @@ class NeoConv():
     def __init__(self,var):
         self.Verbose = 0 #print for debug
         self._= var   #= translation fonction.................
+
         
     #-----------------------------------------------------------------------------   
     def WITDate(self, pjson):
         """
-        convert WIT date into dic with day, begin time, end time, part of the day (morning, lunch, evening)
+        convert WIT date into dic with date, begin time, end time, part of the day (morning, lunch, evening)
+        date, begin time, end time are all datetime objet
+        delta is integer
+        part is string
         """
         #init
         #exemple  dDate = {'end': '19:00', 'begin': '12:00', 'date': '2014-06-14', 'part': 'afternoon', 'delta': 1}
