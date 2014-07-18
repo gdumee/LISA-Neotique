@@ -45,6 +45,7 @@ class NeoTimer():
         """
         # Call user callback
         self.user_cbk(self.user_param)
+        self.timer.cancel()
 
         # Set running state
         self.running = False
@@ -60,7 +61,7 @@ class NeoTimer():
 
         # Stop timer
         self.running = False
-        self.timer.stop()
+        self.timer.cancel()
 
     #-----------------------------------------------------------------------------
     def get_left_time_s(self):

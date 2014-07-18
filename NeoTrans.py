@@ -29,30 +29,38 @@ class NeoTrans():
     ex : (1, 'message 1'), (10, 'message 2')
     'message 1' has 1 chances on 11 to be selected, 'message 2' has 10 chances on 11
     """
-    def __init__(self, domain, localedir, fallback, languages):
+    def __init__(self, domain, localedir, fallback, languages, test = False):
         """
-        # Intialization with a gettext translation function : : translation = gettext.translation(domain='.................
+        # Intialization with a gettext translation function : translation = gettext.translation(domain='.................
         """
+        if test:
+            print " -----------------------------------------------------NeoTrans test mode -------------------------------------------"
+        
         # Generate translation dictionary
         if localedir is not None:
             for x in os.listdir(localedir):
                 if os.path.isfile("{localedir}/{lang}".format(localedir = localedir, lang = x)) == True or os.path.isdir("{localedir}/{lang}/LC_MESSAGES".format(localedir = localedir, lang = x)) == False:
                     continue
-                
+
                 # Search po files
                 wildcard = "{localedir}/{lang}/LC_MESSAGES/*.po".format(localedir = localedir, lang = x)
                 for y in glob.glob(wildcard):
                     filename_mo = y[:-2] + "mo"
                     filename_po = y
-                    
+
                     # Check if mo file is older
                     if os.path.isfile(filename_mo) == False or os.path.getmtime(filename_po) > os.path.getmtime(filename_mo):
+                        # Check if po file has no error
+                        if test:
+                            self.checkError(filename_po)
                         print "Generating {lang} translations".format(lang = x)
                         call(['msgfmt', '-o', filename_mo, filename_po])
 
         # Initialize gettext
         self.trans = gettext.translation(domain = domain, localedir = localedir, fallback = fallback, languages = languages).ugettext
 
+    #-----------------------------------------------------------------------------
+    #              Publics  Fonctions
     #-----------------------------------------------------------------------------
     def Trans(self, translation_key):
         # Get translation
@@ -69,8 +77,64 @@ class NeoTrans():
         
         # In others cases return translated string
         return msg
+
+    #-----------------------------------------------------------------------------
+    def checkError(self, pfile):
+        """
+        read po file for syntax errors
+        pfile = PO file to check out
+        """
+        line = 0
+        bMsgstr = False  #are you reading msgstr lines ?
+        bError = False #Existing error
+        f = open (pfile,"r")
+        for line2 in f:
+            line +=1
+            #ignore comment file
+            if line2[0] == '#':
+                continue
+            #empty lien
+            if line2 == '\n':
+                bMsgstr = False
+            #msgid line
+            if line2[:6] == 'msgid ':
+                bMsgstr = False
+                if line2.count('"') <> 2:
+                    print "Error on line {0}".format(line)
+                    bError= True
+            #msgstr line
+            if line2[:6] == 'msgstr':
+                bMsgstr = True
+            #bMsgstr
+            if bMsgstr == True:
+                if line2.count('"') <> 4:
+                    print 'Missing " on line {0}'.format(line)
+                    bError= True
+                if line2.count('(') <> 1:
+                    print 'Missing ( on line {0}'.format(line)
+                    bError= True
+                if line2.count(')') <> 1:
+                    print 'Missing ) on line {0}'.format(line)
+                    bError= True
+                try:
+                    if type(eval(line2[line2.index('"(')+2:line2.index(',')])) <> int:
+                        print 'Missing , after number on line {0}'.format(line)
+                        bError= True
+                except:
+                    print 'Missing de , after number on line {0}'.format(line)
+                    bError= True
+                if line2[len(line2)-4:len(line2)-1] <> '),"':       #len(line2)-1 because \n at EOL
+                    print 'Missing )," at the end of line {0}'.format(line)
+                    bError= True
         
-        
+        f.close()
+        if bError == True:
+            print ('Errors in PO file')
+        else:
+            print ('No error in PO file')
+    
+    #-----------------------------------------------------------------------------
+    #              Private  Fonctions
     #-----------------------------------------------------------------------------
     def _do_random(self, options):
         """
