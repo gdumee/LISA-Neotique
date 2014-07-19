@@ -10,6 +10,17 @@
 #-----------------------------------------------------------------------------
 
 
+
+#-----------------------------------------------------------------------------
+# Version   : Date      : Modif
+#-----------------------------------------------------------------------------
+#           : 19/07/14  : improve error dectection on Trans
+#-----------------------------------------------------------------------------
+#           :           :
+#-----------------------------------------------------------------------------
+
+
+
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
@@ -33,7 +44,7 @@ class NeoTrans():
         """
         # Intialization with a gettext translation function : : translation = gettext.translation(domain='.................
         """
-        if test == "__main__" : print " -----------------------------------------------------NeoTrans test mode -------------------------------------------"
+        if test == "__main__" : print " ---------------------------------------------NeoTrans test mode -------------------------------"
         
         if test == "__main__" : 
             # Generate translation dictionary
@@ -85,48 +96,60 @@ class NeoTrans():
         read po file for syntax errors
         pfile = PO file to check out
         """
+        print "Check translation file"
         line = 0
         bMsgstr = False  #are you reading msgstr lines ?
         bError = False #Existing error
         f = open (pfile,"r")
         for line2 in f:
             line +=1
+            #delete \t and ' '
+            line2 = line2.lstrip()  
+            #ignore empty line (after #delete \t and ' ')
+            if line2 == '\n' or line2 == '':
+                bMsgstr = False
+                continue
             #ignore comment file
             if line2[0] == '#' :
                 continue
-            #empty lien
-            if line2 == '\n' :
-                bMsgstr = False
+            #no msgid ou msgstr line
+            if (line2[:6] <>'msgid ') and (line2[:6] <> 'msgstr') and bMsgstr == False:
+                print "    Unknown string on line {0}".format(line)
+                continue
             #msgid line
             if line2[:6] == 'msgid ' :
                 bMsgstr = False
                 if line2.count('"') <> 2 :
-                    print "Error on line {0}".format(line)
+                    print "    Error on line {0}".format(line)
                     bError= True
             #msgstr line
             if line2[:6] == 'msgstr' :
                 bMsgstr = True
-            #bMsgstr
+            #check for translations lines
             if bMsgstr == True :
-                if line2.count('"') <> 4 :
-                    print 'Missing " on line {0}'.format(line)
-                    bError= True
-                if line2.count('(') <> 1 :
-                    print 'Missing ( on line {0}'.format(line)
-                    bError= True
-                if line2.count(')') <> 1 :
-                    print 'Missing ) on line {0}'.format(line)
-                    bError= True
-                try :
-                    if type(eval(line2[line2.index('"(')+2:line2.index(',')])) <> int :
-                        print 'Missing , after number on line {0}'.format(line)
+                if line2.count('"') <> 2 : #verif only complexe line
+                    if line2.count('"') <> 4 :
+                        print '    Missing " on line {0}'.format(line)
                         bError= True
-                except :
-                    print 'Missing de , after number on line {0}'.format(line)
-                    bError= True
-                if line2[len(line2)-4:len(line2)-1] <> '),"' :       #len(line2)-1 because \n at EOL
-                    print 'Missing )," at the end of line {0}'.format(line)
-                    bError= True
+                    if line2.count('(') <> 1 :
+                        print '    Missing ( on line {0}'.format(line)
+                        bError= True
+                    if line2.count(')') <> 1 :
+                        print '    Missing ) on line {0}'.format(line)
+                        bError= True
+                    if line2.count('{') <> line2.count('}') :
+                        print '    Missing {1} on line {0}'.format(line,"{ or }")
+                        bError= True
+                    try :
+                        if type(eval(line2[line2.index('"(')+2:line2.index(',')])) <> int :
+                            print '    Missing , after number on line {0}'.format(line)
+                            bError= True
+                    except :
+                        print '    Missing de , after number on line {0}'.format(line)
+                        bError= True
+                    if line2[len(line2)-4:len(line2)-1] <> '),"' :       #len(line2)-1 because \n at EOL
+                        print '    Missing )," at the end of line {0}'.format(line)
+                        bError= True
         #end for
         
         f.close()

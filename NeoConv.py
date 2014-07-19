@@ -12,6 +12,18 @@
 
 #TODO
 #prendre en compte le decalge hoarire
+#add transaled day,and translated month pour return
+#add its own dico translation pour day and month
+
+#-----------------------------------------------------------------------------
+# Version   : Date      : Modif
+#-----------------------------------------------------------------------------
+#           : 19/07/14  : improve decode WITdate
+#           :           :   add day, month 
+#-----------------------------------------------------------------------------
+#           :           :
+#-----------------------------------------------------------------------------
+
 
 
 #-----------------------------------------------------------------------------
@@ -25,10 +37,11 @@ from datetime import datetime
 #-----------------------------------------------------------------------------
 class NeoConv():
 
-    def __init__(self,var):
-        self.Verbose = 0 #print for debug
+    def __init__(self,var,test=""):
+        self.verbose = 0 #print for debug
         self._= var   #= translation fonction.................
-
+        self.test = test
+        if self.test == "__main__" : print " ---------------------------------------------NeoConvtest mode -------------------------------"
         
     #-----------------------------------------------------------------------------   
     def WITDate(self, pjson):
@@ -38,13 +51,17 @@ class NeoConv():
         delta is integer
         part is string
         """
+        if self.test ==  "__main__" : print 'start WITDate'
         #init
-        #exemple  dDate = {'end': '19:00', 'begin': '12:00', 'date': '2014-06-14', 'part': 'afternoon', 'delta': 1}
+        #exemple  dDate = {'end': datetime.time(20,50), 'begin': datetime.time(12,00), 'date': datetime.date(2014, 7, 18), 'part': 'afternoon', 'delta': 1, 'day' : 'Mon', 'Month':'July'}
         dDate = {'date': datetime.now().date(), 
         'delta': 0, 
         'part': 'alltheday', 
-        'begin': datetime.now().time().strftime("%H:%M"), 
-        'end': datetime.now().time().strftime("%H:%M")}
+        'begin': datetime.today().time().strftime("%H:%M"), 
+        'end': datetime.today().time().strftime("%H:%M"),
+        'month':datetime.today().strftime("%B"),
+        'day' : datetime.today().strftime("%c")[:3],
+        }
         
       
         if pjson['outcome']['entities'].has_key('datetime') == False:
@@ -64,22 +81,34 @@ class NeoConv():
         #delta days
         delta = dDate['date']- datetime.now().date()
         dDate['delta'] = delta.days
+        #month
+        month = pjson['outcome']['entities']['datetime']['value']['from']
+        month = month[:month.index('+')] #supprssion decalage horaire
+        month = datetime.strptime(month, '%Y-%m-%dT%H:%M:%S.%f')
+        dDate['month'] = month.date().strftime("%B")
+        #day
+        day = pjson['outcome']['entities']['datetime']['value']['from']
+        day = day[:day.index('+')] #supprssion decalage horaire
+        day = datetime.strptime(day, '%Y-%m-%dT%H:%M:%S.%f')
+        dDate['day'] = day.date().strftime("%c")[:3]
         
         #part of day
-        if depart.time().hour == 04 and fin.time().hour == 12:
+        if depart.time().hour == 18 and fin.time().hour == 00: #speclial case evening for WIT
+            dDate['part']="evening"
+        elif depart.time().hour >= 04 and fin.time().hour <= 12:
             dDate['part']="morning"
-        elif depart.time().hour == 12 and fin.time().hour == 13:
+        elif depart.time().hour >= 12 and fin.time().hour <= 13:
             dDate['part']="midday"
-        elif depart.time().hour == 12 and fin.time().hour ==19:
+        elif depart.time().hour >= 12 and fin.time().hour <=19:
             dDate['part']="afternoon"
-        elif depart.time().hour == 18 and fin.time().hour == 0:
+        elif depart.time().hour >= 18 and fin.time().hour <= 24:
             dDate['part']="evening"
         elif depart.time().hour == 0 and fin.time().hour == 0:
             dDate['part']="alltheday"
         else :
             dDate['part']="alltheday"
     
-        if  self.Verbose == True : print "dDate           =", dDate
+        if  self.test == True : print "WITDate           =", dDate
         return dDate
 
     #-----------------------------------------------------------------------------
@@ -91,30 +120,34 @@ class NeoConv():
         pMinutes = optionnal, if 1 returns '20 heures 30 minutes' else returns '20 heures 30'
         pSecondes = optionnal, if 1 (and pMinutes=1) returns '20 heures 30 minutes and 17 secondes ' else returns '20 heures 30 minutes'
         """
-        if self.Verbose == True : print 'time2str : pTime, type(pTime)       ',pTime, type(pTime)
+        if self.test ==  "__main__" : print 'start time2str'
+        if self.verbose  == 1 : print  'input     :',pTime, type(pTime)
         
-        if type(pTime) == str :
+        if type(pTime) == str :  #convert str to datetime objet
             try :
                 pTime = datetime.strptime(pTime, '%H:%M:%S')
+                pTime= pTime.time()
             except :
                 pTime = datetime.strptime(pTime, '%H:%M') 
-            
+                pTime= pTime.time()
+        
         h = pTime.strftime("%H")
         if h[0:1]== "0":
             h=h[1:2]
-        msg = h + self._('hour')
+        msg = h + self._('hour') + ' '
         m = pTime.strftime("%M")
         if m =="00":
             m=""
         elif m[0:1]== "0":
             m=m[1:2]
-        msg += m
+        msg += str(m)
         if pMinutes==1 :
             msg += self._('minute')
             if pSecond == 1 :
                 s = pTime.strftime("%S")
                 msg += self._('and') + s + self._('second')
-                
+            
+        if self.verbose  == 1 : print 'time2str output    :',msg
         return msg
 
 #-----------------------------------------------------------------------------
