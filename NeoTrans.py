@@ -40,13 +40,13 @@ class NeoTrans():
     ex : (1, 'message 1'), (10, 'message 2')
     'message 1' has 1 chances on 11 to be selected, 'message 2' has 10 chances on 11
     """
-    def __init__(self, domain, localedir, fallback, languages, test=""):
+    def __init__(self, domain, localedir, fallback, languages, test=False):
         """
-        # Intialization with a gettext translation function : : translation = gettext.translation(domain='.................
+        # Intialization with a gettext translation function : translation = gettext.translation(domain='.................
         """
-        if test == "__main__" : print " ---------------------------------------------NeoTrans test mode -------------------------------"
+        if test == :
+            print " ---------------------------------------------NeoTrans test mode -------------------------------"
         
-        if test == "__main__" : 
             # Generate translation dictionary
             if localedir is not None:
                 for x in os.listdir(localedir):
