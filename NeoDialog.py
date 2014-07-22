@@ -23,7 +23,7 @@ from lisa.Neotique.NeoTimer import NeoTimer
 from lisa.Neotique.NeoTrans import NeoTrans
 from lisa.server.ConfigManager import ConfigManagerSingleton
 
-
+from sys import getrefcount
 # Initialize translation
 path = '/'.join([ConfigManagerSingleton.get().getPath(), 'lang'])
 _ = NeoTrans(domain = 'lisa', localedir = path, fallback = True, languages = [ConfigManagerSingleton.get().getConfiguration()['lang']]).Trans
@@ -38,15 +38,50 @@ class NeoContext():
     __history = {}
     __steps = {'count': 0, 'first': None, 'last': None}
     __plugins = {}
+    configuration_server = ConfigManagerSingleton.get().getConfiguration()
         
     #-----------------------------------------------------------------------------
     def __init__(self, factory, client_uid):
-        self.configuration_server = ConfigManagerSingleton.get().getConfiguration()
         self.factory = factory
         self.wait_step = None
         self.client = factory.clients[client_uid]
         self.client['context'] = self
         self._client_steps = {'count': 0, 'first': None, 'last': None}
+
+    #-----------------------------------------------------------------------------
+    def clean(self):
+        # Lock access
+        NeoContext.__lock.acquire()
+
+        # Clean client vars
+        self._client_steps = None
+        self.client = None
+        self.factory = None
+        if hasattr(self, 'Vars') == True:
+            for v in self.Vars:
+                self.Vars[v] = None
+
+        # Clean global vars
+        NeoContext.__steps = None
+        for v in NeoContext.__plugins:
+            NeoContext.__plugins[v] = None
+        for v in NeoContext.__history:
+            NeoContext.__history[v] = None
+        if NeoContext.__global_ctx.has_key('Vars') == True:
+            for v in NeoContext.__global_ctx['Vars']:
+                print v
+                for t in NeoContext.__global_ctx['Vars'][v]:
+                    #NeoContext.__global_ctx['Vars'][v][t]['timer'].stop()
+                    print "Count : {}".format(getrefcount(NeoContext.__global_ctx['Vars'][v][t]['timer']))
+                    NeoContext.__global_ctx['Vars'][v][t]['timer'] = None
+                    
+                del NeoContext.__global_ctx['Vars']
+                NeoContext.__global_ctx['Vars'] = None
+        for v in NeoContext.__global_ctx:
+            NeoContext.__global_ctx[v] = None
+
+        # Release access
+        NeoContext.__lock.release()
 
     #-----------------------------------------------------------------------------
     def parse(self, jsonInput, module_name = None, function_name = None):
@@ -68,7 +103,7 @@ class NeoContext():
             return
 
         # Check Wit confidence
-        if jsonInput['outcome'].has_key('confidence') == False or jsonInput['outcome']['confidence'] < self.configuration_server['wit_confidence']:
+        if jsonInput['outcome'].has_key('confidence') == False or jsonInput['outcome']['confidence'] < NeoContext.configuration_server['wit_confidence']:
             # Add an error step
             step = self._create_step()
             step['type'] = "error confidence"
@@ -365,35 +400,62 @@ class NeoContext():
         return step
         
     #-----------------------------------------------------------------------------
-    def getLastStepClient(self):
-        # Lock access
-        NeoContext.__lock.acquire()
-        
-        # Get last step of this client
-        last_step = self.getLastStepClient()
-
-        # Release access
-        NeoContext.__lock.release()
-        
-        return step
-        
-    #-----------------------------------------------------------------------------
-    def getClientVar(self, name, default):
+    def createClientVar(self, name, default = None):
+        # Create Vars if needed
         if hasattr(self, 'Vars') == False:
             self.Vars = {}
+
+        # If var doesn't exists
         if self.Vars.has_key(name) == False:
+            # Add client variable
             self.Vars[name] = default
-        return self.Vars[name]
+
+        # If property doesn't exist
+        if hasattr(self.__class__, name) == False:
+            # Create local fget and fset functions
+            fget = lambda self: self._get_client_var(name)
+            fset = lambda self, value: self._set_client_var(name, value)
+
+            # Add property to self
+            setattr(self.__class__, name, property(fget, fset))
+        
+    #-----------------------------------------------------------------------------
+    def createGlobalVar(self, name, default = None):
+        # Create Vars if needed
+        if hasattr(NeoContext, 'Vars') == False:
+            NeoContext.Vars = {}
+
+        # If var doesn't exists
+        if NeoContext.Vars.has_key(name) == False:
+            # Add client variable
+            NeoContext.Vars[name] = default
+
+        # If property doesn't exist
+        if hasattr(self.__class__, name) == False:
+            # Create local fget and fset functions
+            fget = lambda self: self._get_global_var(name)
+            fset = lambda self, value: self._set_global_var(name, value)
+
+            # Add property to self
+            setattr(self.__class__, name, property(fget, fset))
+        
+    #-----------------------------------------------------------------------------
+    def _set_client_var(self, name, value):
+        self.Vars[name] = value
 
     #-----------------------------------------------------------------------------
-    def getGlobalvar(self, name, default):
-        if NeoContext.__global_ctx.has_key('Vars') == False:
-            NeoContext.__global_ctx['Vars'] = {}
-        if NeoContext.__global_ctx['Vars'].has_key(name) == False:
-            NeoContext.__global_ctx['Vars'][name] = default
-        return NeoContext.__global_ctx['Vars'][name]
+    def _get_client_var(self, name):
+        return self.Vars[name]
+    
+    #-----------------------------------------------------------------------------
+    def _set_global_var(self, name, value):
+        NeoContext.Vars[name] = value
 
-        
+    #-----------------------------------------------------------------------------
+    def _get_global_var(self, name):
+        return NeoContext.Vars[name]
+    
+
 #-----------------------------------------------------------------------------
 # NeoDialog
 #-----------------------------------------------------------------------------
@@ -414,6 +476,16 @@ class NeoDialog:
         self.factory = factory
         self.client = factory.clients[client_uid]
         self.client['context'] = NeoContext(factory = factory, client_uid = client_uid)
+        
+    #-----------------------------------------------------------------------------
+    def __del__(self):
+        # Clean context
+        self.client['context'].clean()
+        self.client.pop('context')
+        try:
+            pass
+        except:
+            pass
         
     #-----------------------------------------------------------------------------
     def parse(self, jsonData):

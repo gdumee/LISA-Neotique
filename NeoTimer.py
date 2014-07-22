@@ -39,6 +39,11 @@ class NeoTimer():
         self.timer.start()
 
     #-----------------------------------------------------------------------------
+    def __del__(self):
+        print "Del timer"
+        self.stop()
+        
+    #-----------------------------------------------------------------------------
     def _timer_cbk(self):
         """
         Internal Timer callback
