@@ -39,12 +39,18 @@ class NeoTimer():
         self.timer.start()
 
     #-----------------------------------------------------------------------------
+    def __del__(self):
+        print "Del timer"
+        self.stop()
+        
+    #-----------------------------------------------------------------------------
     def _timer_cbk(self):
         """
         Internal Timer callback
         """
         # Call user callback
         self.user_cbk(self.user_param)
+        self.timer.cancel()
 
         # Set running state
         self.running = False
@@ -60,7 +66,7 @@ class NeoTimer():
 
         # Stop timer
         self.running = False
-        self.timer.stop()
+        self.timer.cancel()
 
     #-----------------------------------------------------------------------------
     def get_left_time_s(self):
