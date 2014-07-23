@@ -13,7 +13,7 @@
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
-import json, uuid, threading
+import json, uuid, threading, os, inspect
 from datetime import datetime
 from pymongo import MongoClient
 from twisted.python.reflect import namedAny
@@ -25,8 +25,8 @@ from lisa.server.ConfigManager import ConfigManagerSingleton
 
 from sys import getrefcount
 # Initialize translation
-path = '/'.join([ConfigManagerSingleton.get().getPath(), 'lang'])
-_ = NeoTrans(domain = 'lisa', localedir = path, fallback = True, languages = [ConfigManagerSingleton.get().getConfiguration()['lang']]).Trans
+path = os.path.dirname(os.path.abspath(__file__)) + "/lang"
+_ = NeoTrans(domain = 'neotique', localedir = path, fallback = True, languages = [ConfigManagerSingleton.get().getConfiguration()['lang']]).Trans
 
 
 #-----------------------------------------------------------------------------
@@ -69,9 +69,9 @@ class NeoContext():
             NeoContext.__history[v] = None
         if NeoContext.__global_ctx.has_key('Vars') == True:
             for v in NeoContext.__global_ctx['Vars']:
-                print v
                 for t in NeoContext.__global_ctx['Vars'][v]:
                     #NeoContext.__global_ctx['Vars'][v][t]['timer'].stop()
+                    # TODO cancel timers
                     print "Count : {}".format(getrefcount(NeoContext.__global_ctx['Vars'][v][t]['timer']))
                     NeoContext.__global_ctx['Vars'][v][t]['timer'] = None
                     
@@ -211,11 +211,8 @@ class NeoContext():
         jsonData['message'] = text
         self.factory.sendToClients(client_uids = client_uids, zone_uids = zone_uids, jsonData = jsonData)
 
-        # TODO debug
-        print step
-
     #-----------------------------------------------------------------------------
-    def askClient(self, plugin_uid, text, answer_cbk, client_uids = [], zone_uids = []):
+    def askClient(self, plugin_uid, text, answer_cbk, wit_context = {}, client_uids = [], zone_uids = []):
         """
         Ask a question, and wait for an answer
         
@@ -248,10 +245,11 @@ class NeoContext():
         step['message'] = text
         step['clients'] = client_uids
         step['zones'] = zone_uids
+        step['wit_context'] = wit_context
 
         # Set waiting state
         step['answer_cbk'] = answer_cbk
-        step['wait_timer'] = NeoTimer(duration_s = 10, user_cbk = self._timer_cbk, user_param = 0)
+        step['wait_timer'] = NeoTimer(duration_s = 20, user_cbk = self._timer_cbk, user_param = 0)
         self.wait_step = step
         
         # Release access
@@ -262,11 +260,9 @@ class NeoContext():
         jsonData['type'] = 'command'
         jsonData['command'] = 'ask'
         jsonData['message'] = text
+        jsonData['wit_context'] = wit_context
         self.factory.sendToClients(client_uids = client_uids, zone_uids = zone_uids, jsonData = jsonData)
         
-        # TODO debug
-        print step
-
     #-----------------------------------------------------------------------------
     def globalSpeakToClient(self, text, client_uids = [], zone_uids = []):
         """
@@ -333,7 +329,6 @@ class NeoContext():
         jsonData['type'] = 'command'
         jsonData['command'] = 'kws'
         self.factory.sendToClients(client_uids = step['clients'], zone_uids = step['zones'], jsonData = jsonData)
-        
         return True
 
     #-----------------------------------------------------------------------------
