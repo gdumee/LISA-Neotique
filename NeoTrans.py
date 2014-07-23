@@ -104,8 +104,7 @@ class NeoTrans():
         print "Checking PO file : {}".format(po_file)
 
         line = 0
-        bmsgid = False
-        bmsgstr = False
+        bMsgstr = False
         bError = False
 
         # open file
@@ -120,6 +119,7 @@ class NeoTrans():
 
             # Empty line and comment
             if l == '\n' or l == '' or l[0] == '#':
+                bMsgstr = False
                 continue
 
             # msgid line
@@ -156,7 +156,7 @@ class NeoTrans():
                     bError= True
                     continue
 
-                # Try complex translation options
+                # Try to get translation options
                 o = None
                 if len(s) > 0 and s[0] == '(':
                     try:
@@ -178,7 +178,6 @@ class NeoTrans():
                     except:
                         print '    Invalid translation option on line {0}'.format(line)
                         bError= True
-                        continue
 
         # Check missing keys
         for k in key_dict:
