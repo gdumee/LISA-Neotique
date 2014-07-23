@@ -63,23 +63,24 @@ class NeoConv():
         
         #part of day
         if depart.time().hour == 04 and fin.time().hour == 12:
-            dDate['part']="morning"
+            dDate['part'] = "morning"
         elif depart.time().hour == 12 and fin.time().hour == 13:
-            dDate['part']="midday"
-        elif depart.time().hour == 12 and fin.time().hour ==19:
-            dDate['part']="afternoon"
+            dDate['part'] = "midday"
+        elif depart.time().hour == 12 and fin.time().hour == 19:
+            dDate['part'] = "afternoon"
         elif depart.time().hour == 18 and fin.time().hour == 0:
-            dDate['part']="evening"
+            dDate['part'] = "evening"
         elif depart.time().hour == 0 and fin.time().hour == 0:
-            dDate['part']="alltheday"
-        else :
-            dDate['part']="alltheday"
+            dDate['part'] = "alltheday"
+        else:
+            dDate['part'] = "alltheday"
     
-        if  self.Verbose == True : print "dDate           =", dDate
+        if  self.Verbose == True:
+            print "dDate           =", dDate
         return dDate
 
     #-----------------------------------------------------------------------------
-    def time2str(self,pTime,pMinutes=1,pSecondes=0):
+    def time2str(self, pTime, pMinutes = 1, pSecondes = 0):
         """
         Convert a time to string "[x hours] [y minutes] [z seconds]"
         pTime 20:30:17, should be a string or time obj
@@ -87,35 +88,31 @@ class NeoConv():
         pMinutes = optionnal, if 1 returns '20 heures 30 minutes' else returns '20 heures 30'
         pSecondes = optionnal, if 1 (and pMinutes=1) returns '20 heures 30 minutes and 17 secondes ' else returns '20 heures 30 minutes'
         """
-        if self.Verbose == True : print 'time2str : pTime, type(pTime)       ',pTime, type(pTime)
+        if self.Verbose == True:
+            print 'time2str : pTime, type(pTime)       ',pTime, type(pTime)
         
-        if type(pTime) == str :
-            try :
+        if type(pTime) == str:
+            try:
                 pTime = datetime.strptime(pTime, '%H:%M:%S')
-            except :
+            except:
                 pTime = datetime.strptime(pTime, '%H:%M') 
             
         h = pTime.strftime("%H")
-        if h[0:1]== "0":
+        if h[0:1] == "0":
             h=h[1:2]
         msg = h + self._('hour')
         m = pTime.strftime("%M")
-        if m =="00":
-            m=""
-        elif m[0:1]== "0":
-            m=m[1:2]
+        if m == "00":
+            m = ""
+        elif m[0:1] == "0":
+            m = m[1:2]
         msg += m
-        if pMinutes==1 :
+        if pMinutes == 1:
             msg += self._('minute')
-            if pSecond == 1 :
+            if pSecond == 1:
                 s = pTime.strftime("%S")
                 msg += self._('and') + s + self._('second')
                 
         return msg
 
-#-----------------------------------------------------------------------------
-# End of NeoConv
-#-----------------------------------------------------------------------------
-
-
-
+# --------------------- End of NeoConv.py  ---------------------
