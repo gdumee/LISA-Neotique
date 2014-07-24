@@ -252,7 +252,7 @@ class NeoTrans():
         for option in option_list:
             # If msg weight is good
             if val < option['weight']:
-                return option['msg']
+                return option['msg'].decode('utf-8')
 
             # Try next string
             val -= option['weight']
