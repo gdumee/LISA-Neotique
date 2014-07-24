@@ -45,7 +45,6 @@ class NeoContext():
         self.factory = factory
         self.wait_step = None
         self.client = factory.clients[client_uid]
-        self.client['context'] = self
         self._client_steps = {'count': 0, 'first': None, 'last': None}
 
     #-----------------------------------------------------------------------------
@@ -88,7 +87,6 @@ class NeoContext():
         # If waiting an answer
         if self._process_answer(jsonInput) == True:
             # The answer was processed
-            print "parse1"
             return
         
         # In no plugin is associated to the intent
@@ -101,7 +99,6 @@ class NeoContext():
             # Return an error to client
             jsonData = {'type': 'Error', 'message': _("no_plugin")}
             self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
-            print "parse2"
             return
 
         # Check Wit confidence
@@ -114,7 +111,6 @@ class NeoContext():
             # Return an error to client
             jsonData = {'type': 'Error', 'message': _("Confidence too low")}
             self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
-            print "parse3"
             return
             
         # Get initialized plugin
@@ -152,7 +148,6 @@ class NeoContext():
                 jsonData = {'type': 'Error', 'message': _("Error initializing plugin")}
                 self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
                 
-                print "parse4"
                 return
                 
         # Get method to call
@@ -171,7 +166,6 @@ class NeoContext():
             jsonData = {'type': 'Error', 'message': _("Error plugin doesn't have this function")}
             self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
             
-            print "parse5"
             return
             
         # Save step in context
@@ -187,8 +181,6 @@ class NeoContext():
         if jsonOutput is not None:
             self.speakToClient(plugin_uid = plugin_uid, text = jsonOutput['body'])
 
-        print "parse6"
-
     #-----------------------------------------------------------------------------
     def speakToClient(self, plugin_uid, text, client_uids = [], zone_uids = []):
         """
@@ -203,7 +195,6 @@ class NeoContext():
         To answer a client, do net set client_uids and zone_uids
         To send to everyone : client_uids = ['all'] or zone_uids = ['all']
         """
-        print "speakToClient ", text
         # If no destination
         if len(client_uids) == 0 and len(zone_uids) == 0:
             client_uids.append(self.client['uid'])
@@ -237,7 +228,6 @@ class NeoContext():
             context : identical to context given here
             jsonAnswer : json received from the client (!!may have no intent!!), None when no answer is received after a timeout
         """
-        print "askClient ", text
         # Lock access
         NeoContext.__lock.acquire()
 
