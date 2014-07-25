@@ -22,8 +22,8 @@ msgstr  "(10, \"Je suis désolé, je ne sais pas répondre à votre demande\"),"
         "(10, \"Je m'excuse, je ne sais pas répondre à votre demande\"),"
         "(10, \"Veuillez m'excuser, votre demande ne fais pas partie de mes fonctions\"),"
         "(10, \"Je suis désolé, je ne comprends pas votre demande\"),"
-        "(10, \"Je suis désolé, je n'ai pas les moyens de répondre à votre demande\"),"
-        
+        "(10, \"Je suis désolé, je ne vois pas de quoi vous voulez parler\"),"
+
 msgid   "Error initializing plugin"
 msgstr  "Je n'ai pas résussi à activer cette fonction"
 
