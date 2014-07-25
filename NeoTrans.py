@@ -79,6 +79,10 @@ class NeoTrans():
     #              Publics  Fonctions
     #-----------------------------------------------------------------------------
     def Trans(self, translation_key):
+        # If empty key
+        if translation_key == "":
+            return ""
+        
         # Get translation
         msg = self.trans(translation_key)
 
@@ -222,14 +226,17 @@ class NeoTrans():
         call(params)
 
         # Get IDs dictionnary
-        key_dict = {}
-        with open(pot_file, "r") as f:
-            for l in f:
-                l = l.strip()
-                if l.startswith("msgid "):
-                    key = eval(l[len("msgid "):])
-                    if key != "":
-                        key_dict[key] = 0
+        try:
+            key_dict = {}
+            with open(pot_file, "r") as f:
+                for l in f:
+                    l = l.strip()
+                    if l.startswith("msgid "):
+                        key = eval(l[len("msgid "):])
+                        if key != "":
+                            key_dict[key] = 0
+        except:
+            pass
 
         return key_dict
 
