@@ -19,6 +19,7 @@ from random import seed
 from subprocess import call
 import glob
 import gettext
+from twisted.python import log
 
 
 #-----------------------------------------------------------------------------
@@ -30,7 +31,7 @@ class NeoTrans():
     ex : (1, 'message 1'), (10, 'message 2')
     'message 1' has 1 chances on 11 to be selected, 'message 2' has 10 chances on 11
     """
-    def __init__(self, domain, localedir, fallback, languages, test = False):
+    def __init__(self, domain, localedir, languages, fallback = True, test = False):
         """
         # Intialization with a gettext translation function : translation = gettext.translation(domain='.................
         """
@@ -69,7 +70,7 @@ class NeoTrans():
 
                     # Check if mo file is older
                     if os.path.isfile(filename_mo) == False or os.path.getmtime(filename_po) > os.path.getmtime(filename_mo):
-                        print "Generating {lang} translations".format(lang = x)
+                        log.msg("Generating {lang} translations".format(lang = x))
                         call(['msgfmt', '-o', filename_mo, filename_po])
 
         # Initialize gettext
@@ -82,7 +83,7 @@ class NeoTrans():
         # If empty key
         if translation_key == "":
             return ""
-        
+
         # Get translation
         msg = self.trans(translation_key)
 
@@ -105,7 +106,7 @@ class NeoTrans():
         po_file : PO file to check out
         key_dict : Keys to search missing translations
         """
-        print "Checking PO file : {}".format(po_file)
+        log.msg("Checking PO file : {}".format(po_file))
 
         line = 0
         bMsgstr = False
@@ -130,7 +131,7 @@ class NeoTrans():
             if l.startswith('msgid '):
                 bMsgstr = False
                 if l.count('"') != 2:
-                    print "    Error on line {0} : missing \" for msgid".format(line)
+                    log.err("    Error on line {0} : missing \" for msgid".format(line))
                     bError= True
 
                 # Remove key from pot dictionnary
@@ -143,7 +144,7 @@ class NeoTrans():
                 l = l[len('msgstr '):].strip()
             # No msgid ou msgstr line
             elif bMsgstr == False:
-                print "    Unknown string on line {0}".format(line)
+                log.err("    Unknown string on line {0}".format(line))
                 continue
 
             # Check for translations lines
@@ -153,10 +154,10 @@ class NeoTrans():
                 try:
                     s = eval(l)
                     if s == "" and key != "":
-                        print "    No translation on line {0} for {1}".format(line, key)
+                        log.err("    No translation on line {0} for {1}".format(line, key))
 
                 except:
-                    print "    Invalid string on line {0}".format(line)
+                    log.err("    Invalid string on line {0}".format(line))
                     bError= True
                     continue
 
@@ -166,7 +167,7 @@ class NeoTrans():
                     try:
                         o = eval(s)
                     except:
-                        print "    Invalid string on line {0}".format(line)
+                        log.err("    Invalid string on line {0}".format(line))
                         bError= True
                         continue
 
@@ -174,13 +175,13 @@ class NeoTrans():
                 if o is not None:
                     try:
                         if type(o[0][0]) != int:
-                            print '    Invalid option weight on line {0}'.format(line)
+                            log.err('    Invalid option weight on line {0}'.format(line))
                             bError= True
                         if type(o[0][1]) != str:
-                            print '    Invalid option string on line {0}'.format(line)
+                            log.err('    Invalid option string on line {0}'.format(line))
                             bError= True
                     except:
-                        print '    Invalid translation option on line {0}'.format(line)
+                        log.err('    Invalid translation option on line {0}'.format(line))
                         bError= True
 
         # Check missing keys
@@ -189,14 +190,14 @@ class NeoTrans():
             f.write("msgid \"{0}\"\n".format(k))
             f.write("msgstr  \"\"\n")
             line += 3
-            print "    No translation on line {0} for {1}".format(line, k)
+            log.err("    No translation on line {0} for {1}".format(line, k))
 
         # Close file
         f.close()
 
         # Result message
         if bError == False:
-            print "    No error in PO file"
+            log.msg("    No error in PO file")
 
         return bError
 
@@ -265,7 +266,7 @@ class NeoTrans():
             val -= option['weight']
 
         # In case of error, return input
-        print 'Translation randomize error'
+        log.err('Translation randomize error')
         return options
 
 # --------------------- End of NeoTrans.py  ---------------------

@@ -182,7 +182,7 @@ class NeoContext():
             self.speakToClient(plugin_uid = plugin_uid, text = jsonOutput['body'])
 
     #-----------------------------------------------------------------------------
-    def speakToClient(self, plugin_uid, text, client_uids = [], zone_uids = []):
+    def speakToClient(self, plugin_uid, text, client_uids = None, zone_uids = None):
         """
         Speak to the client
 
@@ -195,6 +195,12 @@ class NeoContext():
         To answer a client, do net set client_uids and zone_uids
         To send to everyone : client_uids = ['all'] or zone_uids = ['all']
         """
+        # Check params
+        if client_uids is None:
+            client_uids = []
+        if zone_uids is None:
+            zone_uids = []
+
         # If no destination
         if len(client_uids) == 0 and len(zone_uids) == 0:
             client_uids.append(self.client['uid'])
@@ -211,7 +217,7 @@ class NeoContext():
         self.factory.sendToClients(client_uids = client_uids, zone_uids = zone_uids, jsonData = jsonData)
 
     #-----------------------------------------------------------------------------
-    def askClient(self, plugin_uid, text, answer_cbk, wit_context = {}, client_uids = [], zone_uids = []):
+    def askClient(self, plugin_uid, text, answer_cbk, wit_context = None, client_uids = None, zone_uids = None):
         """
         Ask a question, and wait for an answer
 
@@ -228,6 +234,12 @@ class NeoContext():
             context : identical to context given here
             jsonAnswer : json received from the client (!!may have no intent!!), None when no answer is received after a timeout
         """
+        # Check params
+        if client_uids is None:
+            client_uids = []
+        if zone_uids is None:
+            zone_uids = []
+
         # Lock access
         NeoContext.__lock.acquire()
 
@@ -244,7 +256,8 @@ class NeoContext():
         step['message'] = text
         step['clients'] = client_uids
         step['zones'] = zone_uids
-        step['wit_context'] = wit_context
+        if wit_context is not None:
+            step['wit_context'] = wit_context
 
         # Set waiting state
         step['answer_cbk'] = answer_cbk
@@ -259,18 +272,19 @@ class NeoContext():
         jsonData['type'] = 'command'
         jsonData['command'] = 'ask'
         jsonData['message'] = text
-        jsonData['wit_context'] = wit_context
+        if wit_context is not None:
+            jsonData['wit_context'] = wit_context
         self.factory.sendToClients(client_uids = client_uids, zone_uids = zone_uids, jsonData = jsonData)
 
     #-----------------------------------------------------------------------------
-    def globalSpeakToClient(self, text, client_uids = [], zone_uids = []):
+    def globalSpeakToClient(self, text, client_uids = None, zone_uids = None):
         """
 
         """
         TODO
 
     #-----------------------------------------------------------------------------
-    def globalAskToClient(self, text, answer_cbk, client_uids = [], zone_uids = []):
+    def globalAskToClient(self, text, answer_cbk, client_uids = None, zone_uids = None):
         """
 
         """
