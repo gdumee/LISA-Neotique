@@ -21,12 +21,12 @@ from twisted.python import log
 from wit import Wit
 from lisa.Neotique.NeoTimer import NeoTimer
 from lisa.Neotique.NeoTrans import NeoTrans
-from lisa.server.ConfigManager import ConfigManagerSingleton
+from lisa.server.config_manager import ConfigManager
 
 from sys import getrefcount
 # Initialize translation
 path = os.path.dirname(os.path.abspath(__file__)) + "/lang"
-_ = NeoTrans(domain = 'neotique', localedir = path, fallback = True, languages = [ConfigManagerSingleton.get().getConfiguration()['lang']]).Trans
+_ = NeoTrans(domain = 'neotique', localedir = path, fallback = True, languages = [ConfigManager.getConfiguration()['lang']]).Trans
 
 
 #-----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ class NeoContext():
     __history = {}
     __steps = {'count': 0, 'first': None, 'last': None}
     __plugins = {}
-    configuration_server = ConfigManagerSingleton.get().getConfiguration()
+    configuration_server = ConfigManager.getConfiguration()
 
     #-----------------------------------------------------------------------------
     def __init__(self, factory, client_uid):
@@ -97,7 +97,7 @@ class NeoContext():
             step['in_json'] = jsonInput
 
             # Return an error to client
-            jsonData = {'type': 'Error', 'message': _("no_plugin")}
+            jsonData = {'type': 'Error', 'message': _("error_intent_unknown")}
             self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
             return
 
@@ -109,7 +109,7 @@ class NeoContext():
             step['in_json'] = jsonInput
 
             # Return an error to client
-            jsonData = {'type': 'Error', 'message': _("Confidence too low")}
+            jsonData = {'type': 'Error', 'message': _("error_intent_low_confidence")}
             self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
             return
 
@@ -145,7 +145,7 @@ class NeoContext():
                 step['in_json'] = jsonInput
 
                 # Return an error to client
-                jsonData = {'type': 'Error', 'message': _("Error initializing plugin")}
+                jsonData = {'type': 'Error', 'message': _("error_plugin_init")}
                 self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
 
                 return
@@ -157,13 +157,13 @@ class NeoContext():
         except:
             # Add an error step
             step = self._create_step()
-            step['type'] = "error plugin method"
+            step['type'] = "error plugin no method"
             step['module_name'] = module_name
             step['function_name'] = function_name
             step['in_json'] = jsonInput
 
             # Return an error to client
-            jsonData = {'type': 'Error', 'message': _("Error plugin doesn't have this function")}
+            jsonData = {'type': 'Error', 'message': _("error_plugin_no_func")}
             self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
 
             return
@@ -175,7 +175,21 @@ class NeoContext():
 
         # Call plugin method
         jsonInput['context'] = self
-        jsonOutput = methodToCall(jsonInput)
+        try:
+            jsonOutput = methodToCall(jsonInput)
+        except:
+            # Add an error step
+            step = self._create_step()
+            step['type'] = "error plugin exec"
+            step['module_name'] = module_name
+            step['function_name'] = function_name
+            step['in_json'] = jsonInput
+
+            # Return an error to client
+            jsonData = {'type': 'Error', 'message': _("error_plugin_exec")}
+            self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
+
+            return
 
         # Old Lisa plugin output
         if jsonOutput is not None:
@@ -475,7 +489,7 @@ class NeoDialog:
     """
     #-----------------------------------------------------------------------------
     def __init__(self, factory, client_uid):
-        self.configuration_server = ConfigManagerSingleton.get().getConfiguration()
+        self.configuration_server = ConfigManager.getConfiguration()
         client = MongoClient(self.configuration_server['database']['server'], self.configuration_server['database']['port'])
         self.database = client.lisa
 
