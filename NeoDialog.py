@@ -22,12 +22,14 @@ from wit import Wit
 from lisa.Neotique.NeoTimer import NeoTimer
 from lisa.Neotique.NeoTrans import NeoTrans
 from lisa.server.config_manager import ConfigManager
+from lisa.server.plugins.PluginManager import PluginManagerSingleton
+import lisa.plugins
 
 from sys import getrefcount
 # Initialize translation
 path = os.path.dirname(os.path.abspath(__file__)) + "/lang"
 _ = NeoTrans(domain = 'neotique', localedir = path, fallback = True, languages = [ConfigManager.getConfiguration()['lang']]).Trans
-
+# TODO utiliser la traduction dans la configuration
 
 #-----------------------------------------------------------------------------
 # NeoContext
@@ -89,18 +91,6 @@ class NeoContext():
             # The answer was processed
             return
 
-        # In no plugin is associated to the intent
-        if module_name is None or function_name is None:
-            # Add an error step
-            step = self._create_step()
-            step['type'] = "Error no plugin"
-            step['in_json'] = jsonInput
-
-            # Return an error to client
-            jsonData = {'type': 'Error', 'message': _("error_intent_unknown")}
-            self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
-            return
-
         # Check Wit confidence
         if jsonInput['outcome'].has_key('confidence') == False or jsonInput['outcome']['confidence'] < NeoContext.configuration_server['wit_confidence']:
             # Add an error step
@@ -116,39 +106,25 @@ class NeoContext():
         # Get initialized plugin
         plugin = None
         plugin_uid = None
-        for p in NeoContext.__plugins:
-            if NeoContext.__plugins[p]['module_name'] == module_name:
-                # Get plugin
-                plugin = NeoContext.__plugins[p]
-                plugin_uid = p
-                break
+        if module_name is not None:
+            for p in NeoContext.__plugins:
+                if NeoContext.__plugins[p]['module_name'] == module_name:
+                    # Get plugin
+                    plugin = NeoContext.__plugins[p]
+                    plugin_uid = p
+                    break
 
-        # if not found
-        if plugin is None:
-            # Create the plugin
-            try:
-                # Initialize plugin
-                plugin_uid = str(uuid.uuid1())
-                plugin = {'uid': plugin_uid}
-                plugin['module_name'] = module_name
-                plugin['instance'] = namedAny(module_name)()
-                if hasattr(plugin['instance'], 'uid') == True:
-                    plugin['instance'].uid = plugin_uid
-                plugin['steps'] = {'count': 0, 'first': None, 'last': None}
-                NeoContext.__plugins[plugin_uid] = plugin
+        # In no plugin is associated to the intent
+        if plugin is None or module_name is None or function_name is None:
+            # Add an error step
+            step = self._create_step()
+            step['type'] = "Error no plugin"
+            step['in_json'] = jsonInput
 
-            except:
-                # Add an error step
-                step = self._create_step()
-                step['type'] = "error create plugin"
-                step['module_name'] = module_name
-                step['in_json'] = jsonInput
-
-                # Return an error to client
-                jsonData = {'type': 'Error', 'message': _("error_plugin_init")}
-                self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
-
-                return
+            # Return an error to client
+            jsonData = {'type': 'Error', 'message': _("error_intent_unknown")}
+            self.factory.sendToClients(client_uids = [self.client['uid']], jsonData = jsonData)
+            return
 
         # Get method to call
         methodToCall = None
@@ -194,6 +170,30 @@ class NeoContext():
         # Old Lisa plugin output
         if jsonOutput is not None:
             self.speakToClient(plugin_uid = plugin_uid, text = jsonOutput['body'])
+
+    #-----------------------------------------------------------------------------
+    def _initPlugins(self):
+        # Get enabled plugin lists
+        plugins = PluginManagerSingleton.get().getEnabledPlugins()
+
+        # Update plugin install
+        for p in plugins:
+            print "Initiating plugin " + p
+            PluginManagerSingleton.get().updatePlugin(plugin_name = p)
+
+            try:
+                # Initialize plugin
+                plugin_uid = str(uuid.uuid1())
+                plugin = {'uid': plugin_uid}
+                plugin['module_name'] = p
+                plugin['instance'] = namedAny("lisa.plugins." + p + ".modules." + p.lower() + "." + p)()
+                if hasattr(plugin['instance'], 'uid') == True:
+                    plugin['instance'].uid = plugin_uid
+                plugin['steps'] = {'count': 0, 'first': None, 'last': None}
+                NeoContext.__plugins[plugin_uid] = plugin
+            except:
+                log.err("Error while instanciating plugin {}".format(p))
+    initPlugins = classmethod(_initPlugins)
 
     #-----------------------------------------------------------------------------
     def speakToClient(self, plugin_uid, text, client_uids = None, zone_uids = None):
@@ -488,31 +488,19 @@ class NeoDialog:
     Dialog manager
     """
     #-----------------------------------------------------------------------------
-    def __init__(self, factory, client_uid):
+    def __init__(self, factory):
         self.configuration_server = ConfigManager.getConfiguration()
-        client = MongoClient(self.configuration_server['database']['server'], self.configuration_server['database']['port'])
-        self.database = client.lisa
+        mongo = MongoClient(self.configuration_server['database']['server'], self.configuration_server['database']['port'])
+        self.database = mongo.lisa
 
         self.wit = Wit(self.configuration_server['wit_token'])
         self.intentscollection = self.database.intents
 
         # Initialize dialogs
         self.factory = factory
-        self.client = factory.clients[client_uid]
-        self.client['context'] = NeoContext(factory = factory, client_uid = client_uid)
 
     #-----------------------------------------------------------------------------
-    def __del__(self):
-        # Clean context
-        self.client['context'].clean()
-        self.client.pop('context')
-        try:
-            pass
-        except:
-            pass
-
-    #-----------------------------------------------------------------------------
-    def parse(self, jsonData):
+    def parse(self, jsonData, client_uid):
         # If input has already a decoded intent
         if jsonData.has_key("outcome") == True:
             jsonInput = {}
@@ -533,11 +521,12 @@ class NeoDialog:
 
         # Execute intent
         oIntent = self.intentscollection.find_one({"name": jsonInput['outcome']['intent']})
+        client = self.factory.clients[client_uid]
         if oIntent is not None:
             # Call plugin
-            self.client['context'].parse(jsonInput = jsonInput, module_name = oIntent["module"], function_name = oIntent['function'])
+            client['context'].parse(jsonInput = jsonInput, module_name = oIntent["module"], function_name = oIntent['function'])
         else:
             # Parse without intent
-            self.client['context'].parse(jsonInput = jsonInput)
+            client['context'].parse(jsonInput = jsonInput)
 
 # --------------------- End of NeoDialog.py  ---------------------

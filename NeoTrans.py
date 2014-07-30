@@ -31,6 +31,8 @@ class NeoTrans():
     ex : (1, 'message 1'), (10, 'message 2')
     'message 1' has 1 chances on 11 to be selected, 'message 2' has 10 chances on 11
     """
+
+    #-----------------------------------------------------------------------------
     def __init__(self, domain, localedir, languages, fallback = True, test = False):
         """
         # Intialization with a gettext translation function : translation = gettext.translation(domain='.................
