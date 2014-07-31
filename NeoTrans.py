@@ -23,6 +23,12 @@ from twisted.python import log
 
 
 #-----------------------------------------------------------------------------
+# Initialize random
+#-----------------------------------------------------------------------------
+seed()
+
+
+#-----------------------------------------------------------------------------
 # NeoTrans
 #-----------------------------------------------------------------------------
 class NeoTrans():
@@ -39,9 +45,6 @@ class NeoTrans():
         """
         # TODO
         test = True
-
-        # Initialize random
-        seed()
 
         # Generate translation dictionary
         if localedir is not None:
