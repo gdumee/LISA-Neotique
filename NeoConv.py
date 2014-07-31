@@ -141,7 +141,7 @@ class NeoConv():
         return msg
 
     #-----------------------------------------------------------------------------
-    def compareStr(self, str1, str2):
+    def compareSimilar(self, str1, str2):
         # TODO comparaison plus précise : pas d'accents, pluriels, pas d'articles...
         return str1.lower() == str2.lower()
 
