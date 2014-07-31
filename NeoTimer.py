@@ -42,7 +42,7 @@ class NeoTimer():
     def __del__(self):
         print "Del timer"
         self.stop()
-        
+
     #-----------------------------------------------------------------------------
     def _timer_cbk(self):
         """
@@ -92,7 +92,6 @@ if __name__ == "__main__":
     print "Apres le start"
 
     for i in range(10):
-        x.stop()
         a = x.get_left_time_s()
         if a == 0:
             break;
