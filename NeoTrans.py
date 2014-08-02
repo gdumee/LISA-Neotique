@@ -110,8 +110,6 @@ class NeoTrans():
         po_file : PO file to check out
         key_dict : Keys to search missing translations
         """
-        log.msg("Checking PO file for lang '{}'".format(lang))
-
         line = 0
         bMsgstr = False
         bError = False
@@ -135,7 +133,7 @@ class NeoTrans():
             if l.startswith('msgid '):
                 bMsgstr = False
                 if l.count('"') != 2:
-                    log.err("    Error on line {0} : missing \" for msgid".format(line))
+                    log.err("    Error : missing \" in msgid on line {0} for lang {1}".format(line, lang))
                     bError= True
 
                 # Remove key from pot dictionnary
@@ -148,7 +146,7 @@ class NeoTrans():
                 l = l[len('msgstr '):].strip()
             # No msgid ou msgstr line
             elif bMsgstr == False:
-                log.err("    Unknown string on line {0}".format(line))
+                log.err("    Unknown string on line {0} for lang {1}".format(line, lang))
                 continue
 
             # Check for translations lines
@@ -158,10 +156,11 @@ class NeoTrans():
                 try:
                     s = eval(l)
                     if s == "" and key != "":
-                        log.msg("    No translation on line {0} for {1}".format(line, key))
+                        log.msg("    No translation for { key} on line {line} for lang {lang}".format(key = key, line = line, lang = lang))
+                        bError= True
 
                 except:
-                    log.err("    Invalid string on line {0}".format(line))
+                    log.err("    Invalid string on line {line} for lang {lang}".format(line = line, lang = lang))
                     bError= True
                     continue
 
@@ -171,7 +170,7 @@ class NeoTrans():
                     try:
                         o = eval(s)
                     except:
-                        log.err("    Invalid string on line {0}".format(line))
+                        log.err("    Invalid string on line {line} for lang {lang}".format(line = line, lang = lang))
                         bError= True
                         continue
 
@@ -179,13 +178,13 @@ class NeoTrans():
                 if o is not None:
                     try:
                         if type(o[0][0]) != int:
-                            log.err('    Invalid option weight on line {0}'.format(line))
+                            log.err("    Invalid option weight on line {line} for lang {lang}".format(line = line, lang = lang))
                             bError= True
                         if type(o[0][1]) != str:
-                            log.err('    Invalid option string on line {0}'.format(line))
+                            log.err("    Invalid option string on line {line} for lang {lang}".format(line = line, lang = lang))
                             bError= True
                     except:
-                        log.err('    Invalid translation option on line {0}'.format(line))
+                        log.err("    Invalid translation option on line {line} for lang {lang}".format(line = line, lang = lang))
                         bError= True
 
         # Check missing keys
@@ -194,14 +193,15 @@ class NeoTrans():
             f.write("msgid \"{0}\"\n".format(k))
             f.write("msgstr  \"\"\n")
             line += 3
-            log.msg("    No translation on line {0} for {1}".format(line, k))
+            log.msg("    No translation for {key} on line {line} for lang {lang}".format(key = k, line = line, lang = lang))
+            bError= True
 
         # Close file
         f.close()
 
         # Result message
-        if bError == False:
-            log.msg("    No error in PO file for lang '{}'".format(lang))
+        if bError == True:
+            log.msg("    See file for lang {lang} : {file}".format(lang = lang, file = po_file))
 
         return bError
 

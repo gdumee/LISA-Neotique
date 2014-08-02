@@ -40,6 +40,7 @@ class NeoTimer():
 
     #-----------------------------------------------------------------------------
     def __del__(self):
+        #TODO debug delete context and timers
         print "Del timer"
         self.stop()
 
@@ -78,25 +79,5 @@ class NeoTimer():
             return 0
 
         return self.end - time()
-
-
-#-----------------------------------------------------------------------------
-# Tests
-#-----------------------------------------------------------------------------
-if __name__ == "__main__":
-    def timer_cbk(message):
-        print "Fin du minuteur {} dans {}".format(message[0], message[1])
-
-    print "avant le start"
-    x = NeoTimer(5, timer_cbk, ("Poulet", "Cuisine"))
-    print "Apres le start"
-
-    for i in range(10):
-        a = x.get_left_time_s()
-        if a == 0:
-            break;
-        print "Reste {} s".format(a)
-        sleep(1)
-
 
 # --------------------- End of NeotTimer.py  ---------------------
