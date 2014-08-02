@@ -14,8 +14,7 @@
 # Imports
 #-----------------------------------------------------------------------------
 import os
-from random import random
-from random import seed
+from random import random, seed
 from subprocess import call
 import glob
 import gettext
@@ -58,7 +57,7 @@ class NeoTrans():
                 key_dict = self.CreatePot(localedir, domain)
 
             for x in os.listdir(localedir):
-                if os.path.isfile("{localedir}/{lang}".format(localedir = localedir, lang = x)) == True or os.path.isdir("{localedir}/{lang}/LC_MESSAGES".format(localedir = localedir, lang = x)) == False:
+                if os.path.isdir("{localedir}/{lang}".format(localedir = localedir, lang = x)) == False or os.path.isdir("{localedir}/{lang}/LC_MESSAGES".format(localedir = localedir, lang = x)) == False:
                     continue
 
                 # Search po files
@@ -70,7 +69,7 @@ class NeoTrans():
                     # Test mode
                     if test == True:
                         # Check if po file has no error
-                        if self.checkError(filename_po, key_dict) == True:
+                        if self.checkError(po_file = filename_po, key_dict = key_dict, lang = x) == True:
                             continue
 
                     # Check if mo file is older
@@ -105,13 +104,13 @@ class NeoTrans():
         return msg
 
     #-----------------------------------------------------------------------------
-    def checkError(self, po_file, key_dict = {}):
+    def checkError(self, po_file, lang, key_dict = {}):
         """
         Read po file for syntax errors
         po_file : PO file to check out
         key_dict : Keys to search missing translations
         """
-        log.msg("Checking PO file : {}".format(po_file))
+        log.msg("Checking PO file for lang '{}'".format(lang))
 
         line = 0
         bMsgstr = False
@@ -159,7 +158,7 @@ class NeoTrans():
                 try:
                     s = eval(l)
                     if s == "" and key != "":
-                        log.err("    No translation on line {0} for {1}".format(line, key))
+                        log.msg("    No translation on line {0} for {1}".format(line, key))
 
                 except:
                     log.err("    Invalid string on line {0}".format(line))
@@ -195,14 +194,14 @@ class NeoTrans():
             f.write("msgid \"{0}\"\n".format(k))
             f.write("msgstr  \"\"\n")
             line += 3
-            log.err("    No translation on line {0} for {1}".format(line, k))
+            log.msg("    No translation on line {0} for {1}".format(line, k))
 
         # Close file
         f.close()
 
         # Result message
         if bError == False:
-            log.msg("    No error in PO file")
+            log.msg("    No error in PO file for lang '{}'".format(lang))
 
         return bError
 

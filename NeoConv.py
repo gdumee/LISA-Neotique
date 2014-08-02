@@ -19,6 +19,8 @@
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
+import string
+from fuzzywuzzy import fuzz
 from datetime import datetime
 
 
@@ -141,8 +143,61 @@ class NeoConv():
         return msg
 
     #-----------------------------------------------------------------------------
-    def compareSimilar(self, str1, str2):
-        # TODO comparaison plus précise : pas d'accents, pluriels, pas d'articles...
-        return str1.lower() == str2.lower()
+    @classmethod
+    def compareSimilar(cls, str1, str2):
+        # Compare strings
+        if str1 == str2:
+            return True
+
+        # Replace special chars
+        str1 = str1.lower()
+        str2 = str2.lower()
+        for p in string.punctuation:
+            str1 = str1.replace(p, ' ')
+            str2 = str2.replace(p, ' ')
+
+        # Compare strings
+        if str1 == str2:
+            return True
+
+        # Remove accents
+        accents = {"à": "a", "â": "a", "ä": "a", "é": "e", "è": "e", "ê": "e", "ë": "e", "ï": "i", "ô": "o", "ö": "o", "ü": "u", "ü": "u", "ù": "u"}
+        for a, b in accents.iteritems():
+            str1 = str1.replace(a.decode('utf-8'), b.decode('utf-8'))
+            str2 = str2.replace(a.decode('utf-8'), b.decode('utf-8'))
+
+        # Compare strings
+        if str1 == str2:
+            return True
+
+        # Split strings into words
+        list1 = str1.split()
+        list2 = str2.split()
+
+        # Remove articles, pronouns...
+        articles = ["le", "la", "les", "de", "du", "des", "ce", "ces", "se", "ses", "sa", "son", "cet", "cette"]
+        for a in articles:
+            while a in list1:
+                list1.remove(a)
+            while a in list2:
+                list2.remove(a)
+
+        # Compare recombined strings
+        str1 = " ".join(list1)
+        str2 = " ".join(list2)
+        if str1 == str2:
+            return True
+
+        # Fuzzy comparaisons
+        if fuzz.ratio(str1, str2) > 95:
+            return True
+        if fuzz.partial_ratio(str1, str2) > 95:
+            return True
+        if fuzz.token_set_ratio(str1, str2) > 95:
+            return True
+        if fuzz.token_sort_ratio(str1, str2) > 95:
+            return True
+
+        return False
 
 # --------------------- End of NeoConv.py  ---------------------
