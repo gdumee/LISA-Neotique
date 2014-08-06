@@ -39,11 +39,6 @@ class NeoTimer():
         self.timer.start()
 
     #-----------------------------------------------------------------------------
-    def __del__(self):
-        print "Del timer"
-        self.stop()
-        
-    #-----------------------------------------------------------------------------
     def _timer_cbk(self):
         """
         Internal Timer callback
@@ -78,26 +73,5 @@ class NeoTimer():
             return 0
 
         return self.end - time()
-
-
-#-----------------------------------------------------------------------------
-# Tests
-#-----------------------------------------------------------------------------
-if __name__ == "__main__":
-    def timer_cbk(message):
-        print "Fin du minuteur {} dans {}".format(message[0], message[1])
-
-    print "avant le start"
-    x = NeoTimer(5, timer_cbk, ("Poulet", "Cuisine"))
-    print "Apres le start"
-
-    for i in range(10):
-        x.stop()
-        a = x.get_left_time_s()
-        if a == 0:
-            break;
-        print "Reste {} s".format(a)
-        sleep(1)
-
 
 # --------------------- End of NeotTimer.py  ---------------------

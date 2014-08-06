@@ -10,25 +10,17 @@
 #-----------------------------------------------------------------------------
 
 
-#TODO
-#prendre en compte le decalge hoarire
-#add transaled day,and translated month pour return
-#add its own dico translation pour day and month
-
-#-----------------------------------------------------------------------------
-# Version   : Date      : Modif
-#-----------------------------------------------------------------------------
-#           : 19/07/14  : improve decode WITdate
-#           :           :   add day, month 
-#-----------------------------------------------------------------------------
-#           :           :
-#-----------------------------------------------------------------------------
-
+#TODO list
+#prendre en compte le decalage horaire
+#add translated day and month in return
+#add its own dico translation for day and month
 
 
 #-----------------------------------------------------------------------------
 # Imports
 #-----------------------------------------------------------------------------
+import string
+from fuzzywuzzy import fuzz
 from datetime import datetime
 
 
@@ -42,8 +34,8 @@ class NeoConv():
         self._= var   #= translation fonction.................
         self.test = test
         if self.test == "__main__" : print " ---------------------------------------------NeoConvtest mode -------------------------------"
-        
-    #-----------------------------------------------------------------------------   
+
+    #-----------------------------------------------------------------------------
     def WITDate(self, pjson):
         """
         convert WIT date into dic with date, begin time, end time, part of the day (morning, lunch, evening)
@@ -54,16 +46,16 @@ class NeoConv():
         if self.test ==  "__main__" : print 'start WITDate'
         #init
         #exemple  dDate = {'end': datetime.time(20,50), 'begin': datetime.time(12,00), 'date': datetime.date(2014, 7, 18), 'part': 'afternoon', 'delta': 1, 'day' : 'Mon', 'Month':'July'}
-        dDate = {'date': datetime.now().date(), 
-            'delta': 0, 
-            'part': 'alltheday', 
-            'begin': datetime.today().time().strftime("%H:%M"), 
+        dDate = {'date': datetime.now().date(),
+            'delta': 0,
+            'part': 'alltheday',
+            'begin': datetime.today().time().strftime("%H:%M"),
             'end': datetime.today().time().strftime("%H:%M"),
             'month':datetime.today().strftime("%B"),
             'day' : datetime.today().strftime("%c")[:3],
         }
-        
-      
+
+
         if pjson['outcome']['entities'].has_key('datetime') == False:
             return dDate
         #else
@@ -91,7 +83,7 @@ class NeoConv():
         day = day[:day.index('+')] #supprssion decalage horaire
         day = datetime.strptime(day, '%Y-%m-%dT%H:%M:%S.%f')
         dDate['day'] = day.date().strftime("%c")[:3]
-        
+
         #part of day
         if depart.time().hour == 18 and fin.time().hour == 00: #speclial case evening for WIT
             dDate['part'] = "evening"
@@ -107,7 +99,7 @@ class NeoConv():
             dDate['part'] = "alltheday"
         else :
             dDate['part'] = "alltheday"
-    
+
         if  self.test == True : print "WITDate           =", dDate
         return dDate
 
@@ -122,15 +114,15 @@ class NeoConv():
         """
         if self.test ==  "__main__": print 'start time2str'
         if self.verbose  == 1 : print  'input     :',pTime, type(pTime)
-        
+
         if type(pTime) == str:  #convert str to datetime objet
             try:
                 pTime = datetime.strptime(pTime, '%H:%M:%S')
                 pTime= pTime.time()
             except:
-                pTime = datetime.strptime(pTime, '%H:%M') 
+                pTime = datetime.strptime(pTime, '%H:%M')
                 pTime = pTime.time()
-        
+
         h = pTime.strftime("%H")
         if h[0:1] == "0":
             h=h[1:2]
@@ -149,5 +141,63 @@ class NeoConv():
 
         if self.verbose  == 1 : print 'time2str output    :',msg
         return msg
+
+    #-----------------------------------------------------------------------------
+    @classmethod
+    def compareSimilar(cls, str1, str2):
+        # Compare strings
+        if str1 == str2:
+            return True
+
+        # Replace special chars
+        str1 = str1.lower()
+        str2 = str2.lower()
+        for p in string.punctuation:
+            str1 = str1.replace(p, ' ')
+            str2 = str2.replace(p, ' ')
+
+        # Compare strings
+        if str1 == str2:
+            return True
+
+        # Remove accents
+        accents = {"à": "a", "â": "a", "ä": "a", "é": "e", "è": "e", "ê": "e", "ë": "e", "ï": "i", "ô": "o", "ö": "o", "ü": "u", "ü": "u", "ù": "u"}
+        for a, b in accents.iteritems():
+            str1 = str1.replace(a.decode('utf-8'), b.decode('utf-8'))
+            str2 = str2.replace(a.decode('utf-8'), b.decode('utf-8'))
+
+        # Compare strings
+        if str1 == str2:
+            return True
+
+        # Split strings into words
+        list1 = str1.split()
+        list2 = str2.split()
+
+        # Remove articles, pronouns...
+        articles = ["le", "la", "les", "de", "du", "des", "ce", "ces", "se", "ses", "sa", "son", "cet", "cette"]
+        for a in articles:
+            while a in list1:
+                list1.remove(a)
+            while a in list2:
+                list2.remove(a)
+
+        # Compare recombined strings
+        str1 = " ".join(list1)
+        str2 = " ".join(list2)
+        if str1 == str2:
+            return True
+
+        # Fuzzy comparaisons
+        if fuzz.ratio(str1, str2) > 95:
+            return True
+        if fuzz.partial_ratio(str1, str2) > 95:
+            return True
+        if fuzz.token_set_ratio(str1, str2) > 95:
+            return True
+        if fuzz.token_sort_ratio(str1, str2) > 95:
+            return True
+
+        return False
 
 # --------------------- End of NeoConv.py  ---------------------

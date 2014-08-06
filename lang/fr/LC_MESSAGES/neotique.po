@@ -10,26 +10,6 @@ msgstr  "Project-Id-Version: neotique 1.0\n"
         "Content-Type: text/plain; charset=UTF-8\n"
         "Content-Transfer-Encoding: 8bit\n"
 
-msgid   "no_plugin"
-msgstr  "(10, \"Je n'ai pas cette fonctionnalité\"),"
-        "(10, \"Votre demande ne fait pas partie de mes fonctions\"),"
-        "(10, \"Un jour j'en serais peut-être capable\"),"
-        "(10, \"Cette tâche est bien trop complexe pour moi\"),"
-        "(10, \"Je ne sais pas encore répondre à cette demande\"),"
-
-msgid   "Confidence too low"
-msgstr  "(10, \"Je suis désolé, je ne sais pas répondre à votre demande\"),"
-        "(10, \"Je m'excuse, je ne sais pas répondre à votre demande\"),"
-        "(10, \"Veuillez m'excuser, votre demande ne fais pas partie de mes fonctions\"),"
-        "(10, \"Je suis désolé, je ne comprends pas votre demande\"),"
-        "(10, \"Je suis désolé, je n'ai pas les moyens de répondre à votre demande\"),"
-        
-msgid   "Error initializing plugin"
-msgstr  "Je n'ai pas résussi à activer cette fonction"
-
-msgid   "Error plugin doesn't have this function"
-msgstr  "Je n'ai pas cette fonctionnalité"
-
 msgid   "hour"
 msgstr  "heure"
 
