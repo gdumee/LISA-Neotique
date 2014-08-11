@@ -20,7 +20,7 @@
 # Imports
 #-----------------------------------------------------------------------------
 import string
-from fuzzywuzzy import fuzz
+#from fuzzywuzzy import fuzz
 from datetime import datetime
 
 
@@ -61,10 +61,14 @@ class NeoConv():
         dDate = {'date': datetime.now().date(),
             'delta': 0,
             'part': 'alltheday',
+            'tpart' :self._('alltheday'),
             'begin': datetime.today().time().strftime("%H:%M"),
             'end': datetime.today().time().strftime("%H:%M"),
             'month':datetime.today().strftime("%B"),
+            'tmonth' :self._(datetime.today().strftime("%B")),
             'day' : datetime.today().strftime("%c")[:3],
+            'tday' :self._(datetime.today().strftime("%c")[:3]),
+            
         }
         
         if ('outcome' not in pjson)  or ('datetime' not in pjson['outcome']['entities']) : #in case of no json or in case of json whitout datetime
@@ -190,7 +194,7 @@ class NeoConv():
         str2 = " ".join(list2)
         if str1 == str2:
             return True
-
+        """
         # Fuzzy comparaisons
         if fuzz.ratio(str1, str2) > 95:
             return True
@@ -200,7 +204,7 @@ class NeoConv():
             return True
         if fuzz.token_sort_ratio(str1, str2) > 95:
             return True
-
+        """
         return False
 
 # --------------------- End of NeoConv.py  ---------------------
